@@ -1,0 +1,172 @@
+// Prisma Schema for DevWork - Role-Based Project Marketplace
+// This is the single source of truth for the database structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & ROLE MODELS
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Many-to-many with Role through UserRole
+  roles UserRole[]
+
+  // Projects where user is the buyer
+  buyerProjects Project[] @relation("BuyerProjects")
+
+  // Projects where user is the assigned solver
+  solverProjects Project[] @relation("SolverProjects")
+
+  // Project requests made by solver
+  requests ProjectRequest[]
+
+  // Tasks created by solver
+  tasks Task[]
+}
+
+model Role {
+  id        String   @id @default(uuid())
+  name      String   @unique // ADMIN, BUYER, SOLVER
+  createdAt DateTime @default(now())
+
+  users UserRole[]
+}
+
+// Junction table for many-to-many User <-> Role
+model UserRole {
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+// ============================================
+// PROJECT MODELS
+// ============================================
+
+model Project {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  budget      Decimal?      @db.Decimal(10, 2)
+  deadline    DateTime?
+  status      ProjectStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Buyer who created the project
+  buyerId String
+  buyer   User   @relation("BuyerProjects", fields: [buyerId], references: [id])
+
+  // Assigned solver (null until assigned)
+  solverId String?
+  solver   User?   @relation("SolverProjects", fields: [solverId], references: [id])
+
+  // Project requests from solvers
+  requests ProjectRequest[]
+
+  // Tasks for this project
+  tasks Task[]
+}
+
+model ProjectRequest {
+  id        String        @id @default(uuid())
+  message   String?
+  status    RequestStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // The project being requested
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // The solver making the request
+  solverId String
+  solver   User   @relation(fields: [solverId], references: [id])
+
+  @@unique([projectId, solverId]) // One request per solver per project
+}
+
+// ============================================
+// TASK & SUBMISSION MODELS
+// ============================================
+
+model Task {
+  id          String     @id @default(uuid())
+  title       String
+  description String
+  deadline    DateTime
+  status      TaskStatus @default(CREATED)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  // Parent project
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Solver who created and owns this task
+  solverId String
+  solver   User   @relation(fields: [solverId], references: [id])
+
+  // Submissions for this task
+  submissions Submission[]
+}
+
+model Submission {
+  id        String   @id @default(uuid())
+  filePath  String // Path to uploaded ZIP file
+  fileName  String // Original filename
+  fileSize  Int // Size in bytes
+  notes     String? // Optional notes from solver
+  createdAt DateTime @default(now())
+
+  // Parent task
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// ENUMS - State Machines
+// ============================================
+
+enum ProjectStatus {
+  DRAFT // Initial state, not visible to solvers
+  OPEN // Published, accepting requests
+  REQUESTED // Has pending requests
+  ASSIGNED // Solver assigned, work not started
+  IN_PROGRESS // Solver actively working
+  UNDER_REVIEW // All tasks submitted, awaiting review
+  COMPLETED // All tasks accepted, project done
+}
+
+enum TaskStatus {
+  CREATED // Task created, work not started
+  IN_PROGRESS // Solver actively working
+  SUBMITTED // Work submitted for review
+  ACCEPTED // Buyer accepted the work
+  REJECTED // Buyer rejected, needs revision
+}
+
+enum RequestStatus {
+  PENDING // Awaiting buyer decision
+  ACCEPTED // Buyer accepted this solver
+  REJECTED // Buyer rejected this request
+}
