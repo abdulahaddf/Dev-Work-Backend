@@ -107,6 +107,13 @@ export const reviewSubmissionSchema = z.object({
   feedback: z.string().max(2000).optional(),
 });
 
+export const reviewProjectSchema = z.object({
+  action: z.enum(['ACCEPT', 'REJECT'], {
+    errorMap: () => ({ message: 'Action must be ACCEPT or REJECT' }),
+  }),
+  feedback: z.string().max(2000).optional(),
+});
+
 // ============================================
 // QUERY SCHEMAS
 // ============================================

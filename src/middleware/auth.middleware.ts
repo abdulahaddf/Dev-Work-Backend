@@ -94,6 +94,7 @@ export async function optionalAuth(
 ): Promise<void> {
   try {
     const token = extractToken(req.headers.authorization);
+    console.log('optionalAuth - path:', req.path, 'token:', token ? 'present' : 'none');
 
     if (token) {
       const payload = verifyToken(token);
@@ -117,12 +118,16 @@ export async function optionalAuth(
             name: user.name,
             roles: user.roles.map((ur) => ur.role.name),
           };
+          console.log('optionalAuth - user authenticated:', user.email);
         }
       }
+    } else {
+      console.log('optionalAuth - no token, proceeding as public');
     }
 
     next();
   } catch (error) {
+    console.log('optionalAuth - error, proceeding without auth:', error);
     // Continue without auth on error
     next();
   }

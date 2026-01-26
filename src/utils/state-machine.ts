@@ -10,7 +10,7 @@ export const PROJECT_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
   REQUESTED: ['ASSIGNED', 'OPEN'], // Can assign solver or stay open
   ASSIGNED: ['IN_PROGRESS'],
   IN_PROGRESS: ['UNDER_REVIEW'],
-  UNDER_REVIEW: ['COMPLETED', 'IN_PROGRESS'], // Can go back if rejected
+  UNDER_REVIEW: ['COMPLETED', 'IN_PROGRESS'], // Can go back to IN_PROGRESS if rejected (solver can resubmit)
   COMPLETED: [], // Terminal state
 };
 

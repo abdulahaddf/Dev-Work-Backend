@@ -69,6 +69,7 @@ model Project {
   budget      Decimal?      @db.Decimal(10, 2)
   deadline    DateTime?
   status      ProjectStatus @default(DRAFT)
+  rejectionFeedback String? // Feedback when buyer rejects project review
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 

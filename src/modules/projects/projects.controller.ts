@@ -106,6 +106,7 @@ export async function getMyProjects(req: Request, res: Response): Promise<void> 
  */
 export async function getOpenProjects(req: Request, res: Response): Promise<void> {
   try {
+    console.log('getOpenProjects called - user:', req.user ? 'authenticated' : 'public');
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const skip = (page - 1) * limit;
@@ -140,23 +141,31 @@ export async function getOpenProjects(req: Request, res: Response): Promise<void
       prisma.project.count({ where }),
     ]);
 
-    // Check if current solver has already requested each project
-    const solverId = req.user!.id;
+    // Check if current user (if authenticated) has already requested each project
     const projectsWithRequestStatus = await Promise.all(
       projects.map(async (project) => {
-        const existingRequest = await prisma.projectRequest.findUnique({
-          where: {
-            projectId_solverId: {
-              projectId: project.id,
-              solverId,
+        let hasRequested = false;
+        let requestStatus = null;
+
+        // Only check request status if user is authenticated
+        if (req.user) {
+          const existingRequest = await prisma.projectRequest.findUnique({
+            where: {
+              projectId_solverId: {
+                projectId: project.id,
+                solverId: req.user.id,
+              },
             },
-          },
-        });
+          });
+          hasRequested = !!existingRequest;
+          requestStatus = existingRequest?.status || null;
+        }
+
         return {
           ...project,
           statusLabel: getProjectStatusLabel(project.status),
-          hasRequested: !!existingRequest,
-          requestStatus: existingRequest?.status || null,
+          hasRequested,
+          requestStatus,
         };
       })
     );
@@ -219,19 +228,52 @@ export async function getProject(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Check access rights
-    const userId = req.user!.id;
-    const userRoles = req.user!.roles;
-    const isBuyer = project.buyerId === userId;
-    const isSolver = project.solverId === userId;
-    const isAdmin = userRoles.includes('ADMIN');
+    // Check access rights (if user is authenticated)
+    let userId: string | undefined;
+    let userRoles: string[] = [];
+    let isBuyer = false;
+    let isSolver = false;
+    let isAdmin = false;
+    let hasRequested = false;
+    let requestStatus: string | null = null;
 
-    // If not admin, buyer, or assigned solver, check if project is public
-    if (!isAdmin && !isBuyer && !isSolver) {
+    if (req.user) {
+      userId = req.user.id;
+      userRoles = req.user.roles;
+      isBuyer = project.buyerId === userId;
+      isSolver = project.solverId === userId;
+      isAdmin = userRoles.includes('ADMIN');
+
+      // Check if user has requested this project (for solvers)
+      if (userRoles.includes('SOLVER') && !isBuyer) {
+        const existingRequest = await prisma.projectRequest.findUnique({
+          where: {
+            projectId_solverId: {
+              projectId: id,
+              solverId: userId,
+            },
+          },
+        });
+        hasRequested = !!existingRequest;
+        requestStatus = existingRequest?.status || null;
+      }
+
+      // If not admin, buyer, or assigned solver, check if project is public
+      if (!isAdmin && !isBuyer && !isSolver) {
+        if (!['OPEN', 'REQUESTED'].includes(project.status)) {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied',
+          });
+          return;
+        }
+      }
+    } else {
+      // Unauthenticated user - only allow access to public projects
       if (!['OPEN', 'REQUESTED'].includes(project.status)) {
         res.status(403).json({
           success: false,
-          message: 'Access denied',
+          message: 'Access denied. Please sign in to view this project.',
         });
         return;
       }
@@ -243,6 +285,8 @@ export async function getProject(req: Request, res: Response): Promise<void> {
         ...project,
         statusLabel: getProjectStatusLabel(project.status),
         accessLevel: isAdmin ? 'admin' : isBuyer ? 'buyer' : isSolver ? 'solver' : 'viewer',
+        hasRequested,
+        requestStatus,
       },
     });
   } catch (error) {
@@ -655,6 +699,110 @@ export async function updateProjectStatus(req: Request, res: Response): Promise<
     res.status(500).json({
       success: false,
       message: 'Failed to update project status',
+    });
+  }
+}
+
+/**
+ * Review project (accept or reject)
+ * POST /projects/:id/review
+ */
+export async function reviewProject(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const { action, feedback } = req.body; // action: 'ACCEPT' | 'REJECT'
+    const userId = req.user!.id;
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        tasks: true,
+      },
+    });
+
+    if (!project) {
+      res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+      return;
+    }
+
+    if (project.buyerId !== userId) {
+      res.status(403).json({
+        success: false,
+        message: 'Only the project buyer can review the project',
+      });
+      return;
+    }
+
+    if (project.status !== 'UNDER_REVIEW') {
+      res.status(400).json({
+        success: false,
+        message: 'Can only review projects in UNDER_REVIEW status',
+        currentStatus: project.status,
+      });
+      return;
+    }
+
+    if (action === 'ACCEPT') {
+      // Check if all tasks are accepted
+      const allTasksAccepted = project.tasks.length > 0 && project.tasks.every((t) => t.status === 'ACCEPTED');
+      if (!allTasksAccepted) {
+        res.status(400).json({
+          success: false,
+          message: 'All tasks must be accepted before accepting the project',
+        });
+        return;
+      }
+
+      // Accept project - mark as completed
+      const updatedProject = await prisma.project.update({
+        where: { id },
+        data: {
+          status: 'COMPLETED',
+          rejectionFeedback: null, // Clear any previous rejection feedback
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Project accepted and marked as completed',
+        data: {
+          ...updatedProject,
+          statusLabel: getProjectStatusLabel(updatedProject.status),
+        },
+      });
+    } else if (action === 'REJECT') {
+      // Reject project - send back to IN_PROGRESS for resubmission
+      const updatedProject = await prisma.project.update({
+        where: { id },
+        data: {
+          status: 'IN_PROGRESS',
+          rejectionFeedback: feedback || null,
+        },
+      });
+
+      res.json({
+        success: true,
+        message: 'Project rejected. Solver can resubmit with improvements.',
+        data: {
+          ...updatedProject,
+          statusLabel: getProjectStatusLabel(updatedProject.status),
+          feedback: feedback || null,
+        },
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid action. Use ACCEPT or REJECT',
+      });
+    }
+  } catch (error) {
+    console.error('Review project error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to review project',
     });
   }
 }

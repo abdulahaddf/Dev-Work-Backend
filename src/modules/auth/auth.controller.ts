@@ -28,20 +28,47 @@ export async function register(req: Request, res: Response): Promise<void> {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Get SOLVER role
+    let solverRole = await prisma.role.findUnique({
+      where: { name: 'SOLVER' },
+    });
+
+    // Create SOLVER role if it doesn't exist
+    if (!solverRole) {
+      solverRole = await prisma.role.create({
+        data: { name: 'SOLVER' },
+      });
+    }
+
+    // Create user with SOLVER role assigned by default
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name,
+        roles: {
+          create: {
+            roleId: solverRole.id,
+          },
+        },
       },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        createdAt: true,
+      include: {
+        roles: {
+          include: {
+            role: true,
+          },
+        },
       },
     });
+
+    // Format user response
+    const userResponse = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      roles: user.roles.map((ur) => ur.role.name),
+      createdAt: user.createdAt,
+    };
 
     // Generate token
     const token = generateToken({
@@ -51,9 +78,9 @@ export async function register(req: Request, res: Response): Promise<void> {
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: 'User registered successfully. SOLVER role assigned by default.',
       data: {
-        user,
+        user: userResponse,
         token,
       },
     });

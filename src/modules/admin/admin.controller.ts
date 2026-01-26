@@ -284,10 +284,16 @@ export async function getAllProjects(req: Request, res: Response): Promise<void>
       prisma.project.count({ where }),
     ]);
 
+    // Import status label function
+    const { getProjectStatusLabel } = await import('../../utils/state-machine.js');
+
     res.json({
       success: true,
       data: {
-        projects,
+        projects: projects.map((p) => ({
+          ...p,
+          statusLabel: getProjectStatusLabel(p.status),
+        })),
         pagination: {
           page,
           limit,

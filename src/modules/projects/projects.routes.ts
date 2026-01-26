@@ -10,23 +10,27 @@ import {
   assignSolver,
   updateProjectStatus,
   getAssignedProjects,
+  reviewProject,
 } from './projects.controller.js';
-import { authenticateJWT } from '../../middleware/auth.middleware.js';
+import { authenticateJWT, optionalAuth } from '../../middleware/auth.middleware.js';
 import { authorizeRole } from '../../middleware/role.middleware.js';
 import { validateBody } from '../../middleware/validate.middleware.js';
-import { createProjectSchema, updateProjectSchema, projectStatusSchema } from '../../validators/schemas.js';
+import { createProjectSchema, updateProjectSchema, projectStatusSchema, reviewProjectSchema } from '../../validators/schemas.js';
 
 const router = Router();
 
-// All project routes require authentication
-router.use(authenticateJWT);
-
 /**
  * @route   GET /projects/open
- * @desc    Get open projects for solvers to browse
- * @access  SOLVER
+ * @desc    Get open projects (public - anyone can view)
+ * @access  Public
+ * IMPORTANT: This route must be defined BEFORE router.use(authenticateJWT)
+ * to ensure it's matched before any parameterized routes like /:id
  */
-router.get('/open', authorizeRole('SOLVER'), getOpenProjects);
+router.get('/open', optionalAuth, getOpenProjects);
+
+// All other project routes require authentication
+// NOTE: /open route above is public and must come before this middleware
+router.use(authenticateJWT);
 
 /**
  * @route   GET /projects/my
@@ -51,10 +55,10 @@ router.post('/', authorizeRole('BUYER'), validateBody(createProjectSchema), crea
 
 /**
  * @route   GET /projects/:id
- * @desc    Get project by ID
- * @access  BUYER, SOLVER, ADMIN (with access control)
+ * @desc    Get project by ID (public for OPEN/REQUESTED projects)
+ * @access  Public (for OPEN/REQUESTED), Authenticated (for others)
  */
-router.get('/:id', getProject);
+router.get('/:id', optionalAuth, getProject);
 
 /**
  * @route   PATCH /projects/:id
@@ -90,5 +94,12 @@ router.get('/:id/requests', authorizeRole('BUYER'), getProjectRequests);
  * @access  BUYER (owner)
  */
 router.post('/:id/assign', authorizeRole('BUYER'), assignSolver);
+
+/**
+ * @route   POST /projects/:id/review
+ * @desc    Review project (accept or reject with feedback)
+ * @access  BUYER (owner)
+ */
+router.post('/:id/review', authorizeRole('BUYER'), validateBody(reviewProjectSchema), reviewProject);
 
 export default router;
