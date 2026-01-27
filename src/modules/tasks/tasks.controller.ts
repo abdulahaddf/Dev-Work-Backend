@@ -370,6 +370,8 @@ export async function reviewTask(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
     const { action, feedback } = req.body;
+    console.log('reviewTask called with body:', req.body);
+    console.log('Feedback value:', feedback);
     const userId = req.user!.id;
 
     const task = await prisma.task.findUnique({

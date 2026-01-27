@@ -104,7 +104,7 @@ export const reviewSubmissionSchema = z.object({
   action: z.enum(['ACCEPT', 'REJECT'], {
     errorMap: () => ({ message: 'Action must be ACCEPT or REJECT' }),
   }),
-  feedback: z.string().max(2000).optional(),
+  feedback: z.string().max(2000).optional().default(''),
 });
 
 export const reviewProjectSchema = z.object({
