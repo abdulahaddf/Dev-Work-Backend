@@ -209,7 +209,11 @@ export async function getProject(req: Request, res: Response): Promise<void> {
           select: { id: true, name: true, email: true },
         },
         tasks: {
-          include: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+
             _count: { select: { submissions: true } },
           },
           orderBy: { createdAt: 'asc' },
@@ -659,11 +663,12 @@ export async function updateProjectStatus(req: Request, res: Response): Promise<
 
     // Special validation for UNDER_REVIEW
     if (newStatus === 'UNDER_REVIEW') {
-      const allTasksSubmitted = project.tasks.every((t) => t.status === 'SUBMITTED');
-      if (!allTasksSubmitted && project.tasks.length > 0) {
+      // Requirement: buyer reviews/accepts tasks first, then solver submits project for final review
+      const allTasksAccepted = project.tasks.every((t) => t.status === 'ACCEPTED');
+      if (!allTasksAccepted && project.tasks.length > 0) {
         res.status(400).json({
           success: false,
-          message: 'All tasks must be submitted before requesting review',
+          message: 'All tasks must be accepted before submitting project for review',
         });
         return;
       }
@@ -759,10 +764,11 @@ export async function reviewProject(req: Request, res: Response): Promise<void> 
       // Accept project - mark as completed
       const updatedProject = await prisma.project.update({
         where: { id },
+        // Cast to avoid Prisma Client type mismatch until schema migration/client regen is applied
         data: {
           status: 'COMPLETED',
           rejectionFeedback: null, // Clear any previous rejection feedback
-        },
+        } as any,
       });
 
       res.json({
@@ -777,10 +783,11 @@ export async function reviewProject(req: Request, res: Response): Promise<void> 
       // Reject project - send back to IN_PROGRESS for resubmission
       const updatedProject = await prisma.project.update({
         where: { id },
+        // Cast to avoid Prisma Client type mismatch until schema migration/client regen is applied
         data: {
           status: 'IN_PROGRESS',
           rejectionFeedback: feedback || null,
-        },
+        } as any,
       });
 
       res.json({

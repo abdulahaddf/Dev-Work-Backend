@@ -116,6 +116,7 @@ model Task {
   description String
   deadline    DateTime
   status      TaskStatus @default(CREATED)
+  reviewFeedback String? // Buyer feedback after reviewing a submitted task
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 

@@ -119,6 +119,8 @@ export async function getProjectTasks(req: Request, res: Response): Promise<void
           take: 1,
           select: { id: true, createdAt: true, fileName: true },
         },
+        // Include review feedback for project tasks list
+
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -151,7 +153,15 @@ export async function getTask(req: Request, res: Response): Promise<void> {
 
     const task = await prisma.task.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        deadline: true,
+        status: true,
+        reviewFeedback: true, // Include review feedback
+        createdAt: true,
+        updatedAt: true,
         project: {
           select: {
             id: true,
@@ -400,7 +410,11 @@ export async function reviewTask(req: Request, res: Response): Promise<void> {
 
     const updatedTask = await prisma.task.update({
       where: { id },
-      data: { status: newStatus },
+      // Cast to avoid Prisma Client type mismatch until schema migration/client regen is applied
+      data: {
+        status: newStatus,
+        reviewFeedback: feedback || null,
+      } as any,
     });
 
     res.json({
@@ -409,7 +423,7 @@ export async function reviewTask(req: Request, res: Response): Promise<void> {
       data: {
         ...updatedTask,
         statusLabel: getTaskStatusLabel(updatedTask.status),
-        feedback,
+        feedback: updatedTask.reviewFeedback,
       },
     });
   } catch (error) {

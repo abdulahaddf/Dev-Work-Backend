@@ -75,7 +75,8 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
     // Update task status to SUBMITTED
     await prisma.task.update({
       where: { id: taskId },
-      data: { status: 'SUBMITTED' },
+      // Cast to avoid Prisma Client type mismatch until schema migration/client regen is applied
+      data: { status: 'SUBMITTED', reviewFeedback: null } as any,
     });
 
     res.status(201).json({

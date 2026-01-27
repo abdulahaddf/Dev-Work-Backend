@@ -41,24 +41,19 @@ export async function assignRole(req: Request, res: Response): Promise<void> {
       return;
     }
 
-    // Check if user already has this role
-    const hasRole = user.roles.some((ur) => ur.role.name === roleName);
-
-    if (hasRole) {
-      res.status(400).json({
-        success: false,
-        message: `User already has the ${roleName} role`,
-      });
-      return;
-    }
-
-    // Assign the role
-    await prisma.userRole.create({
-      data: {
-        userId: user.id,
-        roleId: role.id,
-      },
-    });
+    // Assign role as the ONLY role (exclusive assignment)
+    // Requirement: if you assign BUYER, the user should not keep SOLVER, etc.
+    await prisma.$transaction([
+      prisma.userRole.deleteMany({
+        where: { userId: user.id },
+      }),
+      prisma.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: role.id,
+        },
+      }),
+    ]);
 
     // Get updated user
     const updatedUser = await prisma.user.findUnique({
@@ -72,7 +67,7 @@ export async function assignRole(req: Request, res: Response): Promise<void> {
 
     res.json({
       success: true,
-      message: `${roleName} role assigned to ${user.name}`,
+      message: `${roleName} role assigned to ${user.name} (exclusive)`,
       data: {
         user: {
           id: updatedUser!.id,
