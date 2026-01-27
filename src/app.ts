@@ -1,6 +1,7 @@
 import cors from 'cors';
 import { config } from 'dotenv';
 import express, { Express, NextFunction, Request, Response } from 'express';
+import path from 'path';
 
 // Load environment variables
 config();
@@ -26,8 +27,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+// Serve uploaded files (only if directory exists - for local development)
+const uploadsPath = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(uploadsPath, { dotfiles: 'deny' }));
 
 // ============================================
 // ROUTES

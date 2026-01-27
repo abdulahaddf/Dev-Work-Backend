@@ -3,11 +3,30 @@ import prisma from './prisma/client.js';
 
 const PORT = process.env.PORT || 4000;
 
+// Initialize database connection
+let dbConnected = false;
+
+async function initializeDatabase() {
+  try {
+    await prisma.$connect();
+    dbConnected = true;
+    console.log('✅ Database connected successfully');
+  } catch (error) {
+    dbConnected = false;
+    console.error('❌ Failed to connect to database:', error);
+    // Don't throw - let serverless function continue
+  }
+}
+
+// Initialize on module load
+initializeDatabase().catch((err) => {
+  console.error('Database initialization error:', err);
+});
+
+// Start server for local development
 async function main() {
   try {
-    // Test database connection
-    await prisma.$connect();
-    console.log('✅ Database connected successfully');
+    await initializeDatabase();
 
     // Start server
     app.listen(PORT, () => {
@@ -42,4 +61,10 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-main();
+// Only start listening if not in a serverless environment
+if (process.env.VERCEL !== '1') {
+  main();
+}
+
+// Export for serverless
+export default app;

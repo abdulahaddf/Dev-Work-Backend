@@ -2,15 +2,18 @@
   "version": 2,
   "builds": [
       {
-          "src": "./src/app.ts",
+          "src": "src/server.ts",
           "use": "@vercel/node"
       }
   ],
   "routes": [
       {
           "src": "/(.*)",
-          "dest": "/", 
-          "methods": ["GET", "POST", "PATCH","PUT", "DELETE", "OPTIONS"]
+          "dest": "src/server.ts",
+          "methods": ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"]
       }
-  ]
+  ],
+  "env": {
+      "NODE_ENV": "production"
+  }
 }
