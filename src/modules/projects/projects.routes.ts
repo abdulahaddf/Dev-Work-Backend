@@ -11,6 +11,7 @@ import {
   updateProjectStatus,
   getAssignedProjects,
   reviewProject,
+  deleteProject,
 } from './projects.controller.js';
 import { authenticateJWT, optionalAuth } from '../../middleware/auth.middleware.js';
 import { authorizeRole } from '../../middleware/role.middleware.js';
@@ -101,5 +102,12 @@ router.post('/:id/assign', authorizeRole('BUYER'), assignSolver);
  * @access  BUYER (owner)
  */
 router.post('/:id/review', authorizeRole('BUYER'), validateBody(reviewProjectSchema), reviewProject);
+
+/**
+ * @route   DELETE /projects/:id
+ * @desc    Delete project (BUYER can delete DRAFT only, ADMIN can delete any)
+ * @access  BUYER (owner) or ADMIN
+ */
+router.delete('/:id', deleteProject);
 
 export default router;

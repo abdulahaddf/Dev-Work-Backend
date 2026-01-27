@@ -868,3 +868,78 @@ export async function getAssignedProjects(req: Request, res: Response): Promise<
     });
   }
 }
+
+/**
+ * Delete project
+ * DELETE /projects/:id
+ */
+export async function deleteProject(req: Request, res: Response): Promise<void> {
+  try {
+    const { id } = req.params;
+    const userId = req.user!.id;
+    const userRoles = req.user!.roles;
+    const isAdmin = userRoles.includes('ADMIN');
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { tasks: true, requests: true },
+        },
+      },
+    });
+
+    if (!project) {
+      res.status(404).json({
+        success: false,
+        message: 'Project not found',
+      });
+      return;
+    }
+
+    // Permission checks
+    if (!isAdmin) {
+      // Non-admin users must own the project
+      if (project.buyerId !== userId) {
+        res.status(403).json({
+          success: false,
+          message: 'Only the project owner or admin can delete this project',
+        });
+        return;
+      }
+
+      // Buyers can only delete DRAFT projects
+      if (project.status !== 'DRAFT') {
+        res.status(400).json({
+          success: false,
+          message: 'Can only delete projects in DRAFT status. Active projects cannot be deleted.',
+          currentStatus: project.status,
+        });
+        return;
+      }
+    }
+
+    // Delete project (cascade will handle related tasks, submissions, and requests)
+    await prisma.project.delete({
+      where: { id },
+    });
+
+    res.json({
+      success: true,
+      message: 'Project deleted successfully',
+      data: {
+        id,
+        title: project.title,
+        deletedTasks: project._count.tasks,
+        deletedRequests: project._count.requests,
+      },
+    });
+  } catch (error) {
+    console.error('Delete project error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete project',
+    });
+  }
+}
+
