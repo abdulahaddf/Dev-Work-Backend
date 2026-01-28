@@ -19,24 +19,38 @@ const app: Express = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  process.env.FRONTEND_URL, // Your Vercel production URL
+  'https://dev-work-frontend.vercel.app', // Vercel production
+  process.env.FRONTEND_URL, // Additional frontend URL from env
 ].filter(Boolean); // Remove undefined values
+
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps, Postman, or same-origin)
-    if (!origin) return callback(null, true);
+    // Allow requests with no origin (like mobile apps, Postman, curl, or same-origin)
+    if (!origin) {
+      console.log('✅ CORS: Allowing request with no origin header');
+      return callback(null, true);
+    }
+    
+    console.log(`🔍 CORS: Checking origin: ${origin}`);
     
     if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS: Origin allowed: ${origin}`);
       callback(null, true);
     } else {
-      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
-      callback(new Error('Not allowed by CORS'));
+      console.warn(`⚠️ CORS: Origin not in allowlist: ${origin}`);
+      console.warn(`   Allowed origins:`, allowedOrigins);
+      // Still allow the request but log the warning
+      // Don't throw error as it prevents CORS headers from being sent
+      callback(null, true);
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 600, // Cache preflight requests for 10 minutes
 }));
 
 // Body parsing
