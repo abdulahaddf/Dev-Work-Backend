@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../../prisma/client.js';
-import { deleteFile } from '../../utils/upload.js';
+import { deleteFile, uploadFile, getSignedUrl } from '../../utils/upload.js';
 import path from 'path';
 
 /**
@@ -8,8 +8,11 @@ import path from 'path';
  * POST /submissions/task/:taskId
  */
 export async function createSubmission(req: Request, res: Response): Promise<void> {
+  const { taskId } = req.params;
+  // Initialize file path variable for cleanup in case of error after upload
+  let uploadedFilePath: string | null = null;
+
   try {
-    const { taskId } = req.params;
     const { notes } = req.body;
     const userId = req.user!.id;
     const file = req.file;
@@ -33,8 +36,6 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
     });
 
     if (!task) {
-      // Delete uploaded file if task not found
-      await deleteFile(file.path);
       res.status(404).json({
         success: false,
         message: 'Task not found',
@@ -43,7 +44,6 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
     }
 
     if (task.project.solverId !== userId) {
-      await deleteFile(file.path);
       res.status(403).json({
         success: false,
         message: 'Only the assigned solver can submit work',
@@ -53,7 +53,6 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
 
     // Check task status
     if (!['IN_PROGRESS', 'REJECTED'].includes(task.status)) {
-      await deleteFile(file.path);
       res.status(400).json({
         success: false,
         message: `Cannot submit work for task in ${task.status} status`,
@@ -61,11 +60,15 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
       return;
     }
 
+    // Upload to Supabase
+    const uploadResult = await uploadFile(file, task.project.id, taskId);
+    uploadedFilePath = uploadResult.path;
+
     // Create submission
     const submission = await prisma.submission.create({
       data: {
         taskId,
-        filePath: file.path,
+        filePath: uploadedFilePath,
         fileName: file.originalname,
         fileSize: file.size,
         notes,
@@ -93,9 +96,9 @@ export async function createSubmission(req: Request, res: Response): Promise<voi
     });
   } catch (error) {
     console.error('Create submission error:', error);
-    // Try to clean up file on error
-    if (req.file) {
-      await deleteFile(req.file.path).catch(() => {});
+    // Try to clean up file on error if it was uploaded
+    if (uploadedFilePath) {
+      await deleteFile(uploadedFilePath).catch(() => {});
     }
     res.status(500).json({
       success: false,
@@ -212,18 +215,20 @@ export async function downloadSubmission(req: Request, res: Response): Promise<v
       return;
     }
 
-    // Send file
-    res.download(submission.filePath, submission.fileName, (err) => {
-      if (err) {
-        console.error('Download error:', err);
-        if (!res.headersSent) {
-          res.status(500).json({
-            success: false,
-            message: 'Failed to download file',
-          });
-        }
-      }
-    });
+    // Get signed URL from Supabase
+    const signedUrl = await getSignedUrl(submission.filePath);
+
+    if (!signedUrl) {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate download URL',
+      });
+      return;
+    }
+
+    // Redirect to the signed URL
+    res.redirect(signedUrl);
+
   } catch (error) {
     console.error('Download submission error:', error);
     res.status(500).json({
@@ -280,7 +285,7 @@ export async function deleteSubmission(req: Request, res: Response): Promise<voi
       return;
     }
 
-    // Delete file and database record
+    // Delete file from Supabase and database record
     await deleteFile(submission.filePath);
     await prisma.submission.delete({
       where: { id },

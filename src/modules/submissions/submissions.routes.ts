@@ -26,7 +26,7 @@ const handleUploadError = (err: any, req: Request, res: Response, next: NextFunc
     if (err.message.includes('File too large')) {
       return res.status(400).json({
         success: false,
-        message: 'File size exceeds maximum limit (50MB)',
+        message: 'File size exceeds maximum limit (10MB)',
       });
     }
   }
