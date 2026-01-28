@@ -140,6 +140,8 @@ npm start
 | `POST` | `/auth/login`    | Public        | Login and get JWT token  |
 | `GET`  | `/auth/me`       | Authenticated | Get current user profile |
 
+> **Note**: All new users are automatically assigned the **SOLVER** role upon registration. Admins can assign additional roles (BUYER, ADMIN) or change/remove any existing roles.
+
 ### **Admin** (`/api/admin`)
 
 | Method | Endpoint             | Role  | Description               |
