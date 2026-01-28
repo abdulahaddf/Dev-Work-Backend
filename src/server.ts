@@ -61,10 +61,8 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 
-// Only start listening if not in a serverless environment
-if (process.env.VERCEL !== '1') {
-  main();
-}
+// Start the server
+main();
 
-// Export for serverless
+// Export the app for testing or integration purposes
 export default app;
