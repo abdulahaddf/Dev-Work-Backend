@@ -45,12 +45,23 @@ export async function getConversations(req: Request, res: Response): Promise<voi
       orderBy: { updatedAt: 'desc' },
     });
 
-    const formatted = conversations.map((conv) => {
+    const formatted = await Promise.all(conversations.map(async (conv) => {
       const otherParticipant = conv.participants[0]?.user;
-      console.log(`🔗 Formatting conversation ${conv.id}, otherParticipant found: ${!!otherParticipant}`);
+      
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversationId: conv.id,
+          readAt: null,
+          senderId: { not: userId },
+        },
+      });
+
+      console.log(`🔗 Formatting conversation ${conv.id}, unreadCount: ${unreadCount}`);
+      
       return {
         id: conv.id,
         updatedAt: conv.updatedAt,
+        unreadCount,
         otherParticipant: otherParticipant ? {
           id: otherParticipant.id,
           name: otherParticipant.name,
@@ -59,7 +70,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
         } : null,
         lastMessage: conv.messages[0] || null,
       };
-    });
+    }));
 
     res.json({
       success: true,
@@ -209,5 +220,35 @@ export async function getAdminId(req: Request, res: Response): Promise<void> {
   } catch (error: any) {
     console.error('❌ Get admin ID error:', error.message, error.stack);
     res.status(500).json({ success: false, message: 'Failed to get admin ID', error: error.message });
+  }
+}
+
+/**
+ * Get total unread message count for user
+ * GET /chat/unread-count
+ */
+export async function getUnreadCount(req: Request, res: Response): Promise<void> {
+  try {
+    const userId = req.user!.id;
+
+    const count = await prisma.message.count({
+      where: {
+        conversation: {
+          participants: {
+            some: { userId },
+          },
+        },
+        readAt: null,
+        senderId: { not: userId },
+      },
+    });
+
+    res.json({
+      success: true,
+      data: { count },
+    });
+  } catch (error) {
+    console.error('Get unread count error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get unread count' });
   }
 }

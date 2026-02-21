@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getConversations, getOrCreateConversation, getMessages, getAdminId } from './chat.controller.js';
+import { getConversations, getOrCreateConversation, getMessages, getAdminId, getUnreadCount } from './chat.controller.js';
 import { authenticateJWT } from '../../middleware/auth.middleware.js';
 
 const router = Router();
@@ -27,6 +27,13 @@ router.post('/conversations', getOrCreateConversation);
  * @access  Private
  */
 router.get('/admin-id', getAdminId);
+
+/**
+ * @route   GET /api/chat/unread-count
+ * @desc    Get total unread message count for user
+ * @access  Private
+ */
+router.get('/unread-count', getUnreadCount);
 
 /**
  * @route   GET /api/chat/conversations/:id/messages
