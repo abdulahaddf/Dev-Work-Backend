@@ -28,6 +28,7 @@ DevWork is a SaaS platform connecting project buyers with skilled solvers throug
 ### **Core Features**
 
 - ✅ **Role-Based Access Control (RBAC)** - Admin, Buyer, Solver roles
+- ✅ **Real-Time Communication** - Socket.IO for instant chat, notifications, and presence
 - ✅ **State Machine Workflows** - Enforced project and task lifecycles
 - ✅ **File Upload System** - ZIP submissions stored in Supabase Storage
 - ✅ **JWT Authentication** - Secure token-based auth
@@ -37,18 +38,19 @@ DevWork is a SaaS platform connecting project buyers with skilled solvers throug
 
 ## 🛠 Tech Stack
 
-| Layer                | Technology       | Purpose                   |
-| -------------------- | ---------------- | ------------------------- |
-| **Runtime**          | Node.js 20+      | JavaScript runtime        |
-| **Framework**        | Express.js       | REST API server           |
-| **Language**         | TypeScript       | Type-safe development     |
-| **Database**         | PostgreSQL       | Relational database       |
-| **ORM**              | Prisma 5.9       | Type-safe database access |
-| **Authentication**   | JWT              | Stateless auth tokens     |
-| **File Storage**     | Supabase Storage | Cloud file storage        |
-| **Validation**       | Zod              | Schema validation         |
-| **Password Hashing** | bcryptjs         | Secure password storage   |
-| **File Upload**      | Multer           | Multipart form handling   |
+| **Layer**            | **Technology**   | **Purpose**                    |
+| -------------------- | ---------------- | ------------------------------ |
+| **Runtime**          | Node.js 20+      | JavaScript runtime             |
+| **Framework**        | Express.js       | REST API server                |
+| **Real-time**        | Socket.IO        | WebSockets for chat & presence |
+| **Language**         | TypeScript       | Type-safe development          |
+| **Database**         | PostgreSQL       | Relational database            |
+| **ORM**              | Prisma 5.9       | Type-safe database access      |
+| **Authentication**   | JWT              | Stateless auth tokens          |
+| **File Storage**     | Supabase Storage | Cloud file storage             |
+| **Validation**       | Zod              | Schema validation              |
+| **Password Hashing** | bcryptjs         | Secure password storage        |
+| **File Upload**      | Multer           | Multipart form handling        |
 
 ---
 
@@ -134,23 +136,27 @@ npm start
 
 ### **Authentication** (`/api/auth`)
 
-| Method | Endpoint         | Access        | Description              |
-| ------ | ---------------- | ------------- | ------------------------ |
-| `POST` | `/auth/register` | Public        | Register new user        |
-| `POST` | `/auth/login`    | Public        | Login and get JWT token  |
-| `GET`  | `/auth/me`       | Authenticated | Get current user profile |
+| Method  | Endpoint         | Access        | Description                 |
+| ------- | ---------------- | ------------- | --------------------------- |
+| `POST`  | `/auth/register` | Public        | Register new user           |
+| `POST`  | `/auth/login`    | Public        | Login and get JWT token     |
+| `GET`   | `/auth/me`       | Authenticated | Get current user profile    |
+| `GET`   | `/auth/profile`  | Authenticated | Get detailed public profile |
+| `PATCH` | `/auth/profile`  | Authenticated | Update bio/avatar/links     |
 
 > **Note**: All new users are automatically assigned the **SOLVER** role upon registration. Admins can assign additional roles (BUYER, ADMIN) or change/remove any existing roles.
 
 ### **Admin** (`/api/admin`)
 
-| Method | Endpoint             | Role  | Description               |
-| ------ | -------------------- | ----- | ------------------------- |
-| `POST` | `/admin/assign-role` | ADMIN | Assign role to user       |
-| `POST` | `/admin/remove-role` | ADMIN | Remove role from user     |
-| `GET`  | `/admin/users`       | ADMIN | List all users with stats |
-| `GET`  | `/admin/projects`    | ADMIN | List all projects         |
-| `GET`  | `/admin/roles`       | ADMIN | List available roles      |
+| Method  | Endpoint                   | Role  | Description                           |
+| ------- | -------------------------- | ----- | ------------------------------------- |
+| `POST`  | `/admin/assign-role`       | ADMIN | Assign role to user                   |
+| `POST`  | `/admin/remove-role`       | ADMIN | Remove role from user                 |
+| `GET`   | `/admin/users`             | ADMIN | List all users with stats             |
+| `GET`   | `/admin/projects`          | ADMIN | List all projects                     |
+| `GET`   | `/admin/roles`             | ADMIN | List available roles                  |
+| `GET`   | `/admin/role-requests`     | ADMIN | View pending role change requests     |
+| `PATCH` | `/admin/role-requests/:id` | ADMIN | Resolve role request (approve/reject) |
 
 ### **Projects** (`/api/projects`)
 
@@ -190,12 +196,13 @@ npm start
 
 ### **Submissions** (`/api/submissions`)
 
-| Method   | Endpoint                    | Role   | Description              |
-| -------- | --------------------------- | ------ | ------------------------ |
-| `POST`   | `/submissions/task/:taskId` | SOLVER | Upload ZIP submission    |
-| `GET`    | `/submissions/task/:taskId` | Auth   | Get task submissions     |
-| `GET`    | `/submissions/:id/download` | Auth   | Download submission file |
-| `DELETE` | `/submissions/:id`          | SOLVER | Delete submission        |
+| Method   | Endpoint                    | Role   | Description                     |
+| -------- | --------------------------- | ------ | ------------------------------- |
+| `POST`   | `/submissions/task/:taskId` | SOLVER | Upload ZIP submission           |
+| `GET`    | `/submissions/task/:taskId` | Auth   | Get task submissions            |
+| `GET`    | `/submissions/:id/download` | Auth   | Download submission file        |
+| `DELETE` | `/submissions/:id`          | SOLVER | Delete submission               |
+| `GET`    | `/chat/unread-count`        | Auth   | Get total unread messages count |
 
 ---
 
@@ -326,6 +333,18 @@ Traditional REST API instead of GraphQL or tRPC.
 Allows specific frontend origins with credentials support.
 
 **Why?** Security (blocks unknown origins), enables cookies/auth headers in cross-origin requests.
+
+### **9. Socket.IO Integration**
+
+Persistent WebSocket connections for real-time features.
+
+**Why?**
+
+- **Instant Messaging**: Messages appear without page refreshes.
+- **Presence Tracking**: See when users are online/offline.
+- **Global Notifications**: Alert users of new messages anywhere in the app.
+- **Read Receipts**: Real-time "Seen" status updates.
+- **Typing Indicators**: Visual feedback when the other user is drafting.
 
 ---
 
