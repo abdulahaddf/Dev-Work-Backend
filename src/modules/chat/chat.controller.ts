@@ -47,6 +47,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
 
     const formatted = conversations.map((conv) => {
       const otherParticipant = conv.participants[0]?.user;
+      console.log(`🔗 Formatting conversation ${conv.id}, otherParticipant found: ${!!otherParticipant}`);
       return {
         id: conv.id,
         updatedAt: conv.updatedAt,
@@ -54,7 +55,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
           id: otherParticipant.id,
           name: otherParticipant.name,
           avatar: otherParticipant.avatar,
-          roles: otherParticipant.roles.map(r => r.role.name),
+          roles: otherParticipant.roles.map((r: any) => r.role.name),
         } : null,
         lastMessage: conv.messages[0] || null,
       };
@@ -78,6 +79,7 @@ export async function getOrCreateConversation(req: Request, res: Response): Prom
   try {
     const userId = req.user!.id;
     const { participantId } = req.body;
+    console.log(`💬 getOrCreateConversation: userId=${userId}, participantId=${participantId}`);
 
     if (!participantId) {
       res.status(400).json({ success: false, message: 'Participant ID is required' });
@@ -90,15 +92,21 @@ export async function getOrCreateConversation(req: Request, res: Response): Prom
     }
 
     // Find existing 1-on-1 conversation
-    const existing = await prisma.conversation.findFirst({
+    const userConversations = await prisma.conversation.findMany({
       where: {
-        AND: [
-          { participants: { some: { userId } } },
-          { participants: { some: { userId: participantId } } },
-          { participants: { length: 2 } }, // Assuming 1-on-1
-        ],
+        participants: {
+          some: { userId },
+        },
+      },
+      include: {
+        participants: true,
       },
     });
+
+    const existing = userConversations.find(conv => 
+      conv.participants.length === 2 && 
+      conv.participants.some(p => p.userId === participantId)
+    );
 
     if (existing) {
       res.json({ success: true, data: existing });
@@ -117,10 +125,11 @@ export async function getOrCreateConversation(req: Request, res: Response): Prom
       },
     });
 
+    console.log(`✅ getOrCreateConversation successful: id=${conversation.id}`);
     res.status(201).json({ success: true, data: conversation });
-  } catch (error) {
-    console.error('Create conversation error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create conversation' });
+  } catch (error: any) {
+    console.error('❌ Create conversation error:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Failed to create conversation', error: error.message });
   }
 }
 
@@ -178,6 +187,7 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
  */
 export async function getAdminId(req: Request, res: Response): Promise<void> {
   try {
+    console.log('🛡️ getAdminId request');
     // Find the first user with an ADMIN role
     const adminRole = await prisma.userRole.findFirst({
       where: {
@@ -191,12 +201,13 @@ export async function getAdminId(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    console.log(`✅ getAdminId successful: ${adminRole.userId}`);
     res.json({
       success: true,
       data: { adminId: adminRole.userId },
     });
-  } catch (error) {
-    console.error('Get admin ID error:', error);
-    res.status(500).json({ success: false, message: 'Failed to get admin ID' });
+  } catch (error: any) {
+    console.error('❌ Get admin ID error:', error.message, error.stack);
+    res.status(500).json({ success: false, message: 'Failed to get admin ID', error: error.message });
   }
 }
