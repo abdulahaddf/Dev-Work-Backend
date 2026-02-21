@@ -8,6 +8,7 @@ import requestRoutes from './modules/requests/requests.routes.js';
 import submissionRoutes from './modules/submissions/submissions.routes.js';
 import taskRoutes from './modules/tasks/tasks.routes.js';
 import userRoutes from './modules/users/users.routes.js';
+import chatRoutes from './modules/chat/chat.routes.js';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ router.use('/requests', requestRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/submissions', submissionRoutes);
 router.use('/users', userRoutes);
+router.use('/chat', chatRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -52,6 +54,11 @@ router.get('/', (req, res) => {
       users: {
         'GET /users/:id/profile': 'Get user public profile',
         'PATCH /users/profile': 'Update own profile (authenticated)',
+      },
+      chat: {
+        'GET /chat/conversations': 'Get my conversations',
+        'POST /chat/conversations': 'Create/Get 1-on-1 conversation',
+        'GET /chat/conversations/:id/messages': 'Get conversation messages',
       },
       projects: {
         'POST /projects': 'Create project (BUYER)',

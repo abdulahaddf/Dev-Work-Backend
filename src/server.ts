@@ -1,5 +1,7 @@
+import { createServer } from 'http';
 import app from './app.js';
 import prisma from './prisma/client.js';
+import { setupSocket } from './socket.js';
 
 const PORT = process.env.PORT || 4000;
 
@@ -28,12 +30,18 @@ async function main() {
   try {
     await initializeDatabase();
 
+    // Create HTTP server
+    const httpServer = createServer(app);
+
+    // Setup Socket.IO
+    setupSocket(httpServer);
+
     // Start server
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
-║   🚀 DevWork API Server                                   ║
+║   🚀 DevWork API Server (with WebSockets)                ║
 ║                                                           ║
 ║   Environment: ${(process.env.NODE_ENV || 'development').padEnd(40)}║
 ║   Port: ${String(PORT).padEnd(47)}║

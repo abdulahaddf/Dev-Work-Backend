@@ -40,6 +40,10 @@ model User {
 
   // Tasks created by solver
   tasks Task[]
+
+  // Chat
+  conversations ConversationParticipant[]
+  messages      Message[]
 }
 
 model Role {
@@ -175,4 +179,40 @@ enum RequestStatus {
   PENDING // Awaiting buyer decision
   ACCEPTED // Buyer accepted this solver
   REJECTED // Buyer rejected this request
+}
+
+// ============================================
+// CHAT MODELS
+// ============================================
+
+model Conversation {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId String
+  userId         String
+  joinedAt       DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
 }
