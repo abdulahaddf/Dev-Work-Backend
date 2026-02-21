@@ -115,6 +115,17 @@ export const reviewProjectSchema = z.object({
 });
 
 // ============================================
+// PROFILE SCHEMAS
+// ============================================
+
+export const updateProfileSchema = z.object({
+  bio: z.string().max(500, 'Bio must be 500 characters or less').optional(),
+  avatar: z.string().url('Invalid avatar URL').optional(),
+  skills: z.array(z.string().max(50)).max(20, 'Maximum 20 skills allowed').optional(),
+  location: z.string().max(100, 'Location must be 100 characters or less').optional(),
+});
+
+// ============================================
 // QUERY SCHEMAS
 // ============================================
 
@@ -150,3 +161,4 @@ export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
 export type CreateSubmissionInput = z.infer<typeof createSubmissionSchema>;
 export type ReviewSubmissionInput = z.infer<typeof reviewSubmissionSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

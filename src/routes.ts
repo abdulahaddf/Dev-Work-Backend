@@ -7,6 +7,7 @@ import projectRoutes from './modules/projects/projects.routes.js';
 import requestRoutes from './modules/requests/requests.routes.js';
 import submissionRoutes from './modules/submissions/submissions.routes.js';
 import taskRoutes from './modules/tasks/tasks.routes.js';
+import userRoutes from './modules/users/users.routes.js';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use('/projects', projectRoutes);
 router.use('/requests', requestRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/submissions', submissionRoutes);
+router.use('/users', userRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -46,6 +48,10 @@ router.get('/', (req, res) => {
         'GET /admin/users': 'List all users (ADMIN only)',
         'GET /admin/projects': 'List all projects (ADMIN only)',
         'GET /admin/roles': 'List all roles (ADMIN only)',
+      },
+      users: {
+        'GET /users/:id/profile': 'Get user public profile',
+        'PATCH /users/profile': 'Update own profile (authenticated)',
       },
       projects: {
         'POST /projects': 'Create project (BUYER)',
