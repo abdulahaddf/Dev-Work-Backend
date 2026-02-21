@@ -78,3 +78,8 @@ export function validateParams<T>(schema: ZodSchema<T>) {
     }
   };
 }
+
+/**
+ * Shorthand for validateBody
+ */
+export const validate = validateBody;

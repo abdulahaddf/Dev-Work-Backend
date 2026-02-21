@@ -132,3 +132,30 @@ export async function optionalAuth(
     next();
   }
 }
+
+/**
+ * Middleware to authorize specific roles
+ */
+export function authorizeRoles(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!req.user) {
+      res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+      return;
+    }
+
+    const hasRole = req.user.roles.some((role) => roles.includes(role));
+
+    if (!hasRole) {
+      res.status(403).json({
+        success: false,
+        message: 'Unauthorized access',
+      });
+      return;
+    }
+
+    next();
+  };
+}

@@ -44,6 +44,10 @@ model User {
   // Chat
   conversations ConversationParticipant[]
   messages      Message[]
+
+  // Role Requests
+  roleRequests         RoleRequest[] @relation("UserRoleRequests")
+  reviewedRoleRequests RoleRequest[] @relation("ReviewedRoleRequests")
 }
 
 model Role {
@@ -215,4 +219,30 @@ model Message {
 
   senderId String
   sender   User   @relation(fields: [senderId], references: [id])
+}
+
+// ============================================
+// ROLE REQUEST MODELS
+// ============================================
+
+model RoleRequest {
+  id            String            @id @default(uuid())
+  requestedRole String            // e.g. "BUYER"
+  reason        String?
+  status        RoleRequestStatus @default(PENDING)
+  adminNote     String?           // Admin's response note
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  userId String
+  user   User   @relation("UserRoleRequests", fields: [userId], references: [id])
+
+  reviewedById String?
+  reviewedBy   User?  @relation("ReviewedRoleRequests", fields: [reviewedById], references: [id])
+}
+
+enum RoleRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

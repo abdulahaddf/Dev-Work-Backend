@@ -148,6 +148,24 @@ export const projectFilterSchema = z.object({
 });
 
 // ============================================
+// ROLE REQUEST SCHEMAS
+// ============================================
+
+export const createRoleRequestSchema = z.object({
+  requestedRole: z.enum(['BUYER', 'SOLVER'], {
+    errorMap: () => ({ message: 'Requested role must be BUYER or SOLVER' }),
+  }),
+  reason: z.string().max(1000, 'Reason must be 1000 characters or less').optional(),
+});
+
+export const reviewRoleRequestSchema = z.object({
+  status: z.enum(['APPROVED', 'REJECTED'], {
+    errorMap: () => ({ message: 'Status must be APPROVED or REJECTED' }),
+  }),
+  adminNote: z.string().max(1000, 'Admin note must be 1000 characters or less').optional(),
+});
+
+// ============================================
 // TYPE EXPORTS
 // ============================================
 
@@ -162,3 +180,5 @@ export type CreateSubmissionInput = z.infer<typeof createSubmissionSchema>;
 export type ReviewSubmissionInput = z.infer<typeof reviewSubmissionSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type CreateRoleRequestInput = z.infer<typeof createRoleRequestSchema>;
+export type ReviewRoleRequestInput = z.infer<typeof reviewRoleRequestSchema>;

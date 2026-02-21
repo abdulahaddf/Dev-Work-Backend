@@ -9,6 +9,7 @@ import submissionRoutes from './modules/submissions/submissions.routes.js';
 import taskRoutes from './modules/tasks/tasks.routes.js';
 import userRoutes from './modules/users/users.routes.js';
 import chatRoutes from './modules/chat/chat.routes.js';
+import roleRequestRoutes from './modules/role-requests/role-requests.routes.js';
 
 const router = Router();
 
@@ -31,6 +32,7 @@ router.use('/tasks', taskRoutes);
 router.use('/submissions', submissionRoutes);
 router.use('/users', userRoutes);
 router.use('/chat', chatRoutes);
+router.use('/role-requests', roleRequestRoutes);
 
 // API info endpoint
 router.get('/', (req, res) => {
@@ -59,6 +61,12 @@ router.get('/', (req, res) => {
         'GET /chat/conversations': 'Get my conversations',
         'POST /chat/conversations': 'Create/Get 1-on-1 conversation',
         'GET /chat/conversations/:id/messages': 'Get conversation messages',
+      },
+      'role-requests': {
+        'POST /role-requests': 'Submit role request',
+        'GET /role-requests/my': 'Get my requests',
+        'GET /role-requests': 'List all requests (ADMIN only)',
+        'PATCH /role-requests/:id/review': 'Review request (ADMIN only)',
       },
       projects: {
         'POST /projects': 'Create project (BUYER)',
