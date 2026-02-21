@@ -2,6 +2,8 @@ import { Server as SocketServer } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { verifyToken } from './utils/jwt.js';
 import prisma from './prisma/client.js';
+import { createAdapter } from '@socket.io/redis-adapter';
+import Redis from 'ioredis';
 
 // Track online users: userId -> Set of socketIds
 const onlineUsers = new Map<string, Set<string>>();
@@ -17,6 +19,14 @@ export function setupSocket(httpServer: HttpServer) {
       credentials: true,
     },
   });
+
+  // Redis Adapter for Horizontal Scaling
+  if (process.env.REDIS_URL) {
+    const pubClient = new Redis(process.env.REDIS_URL);
+    const subClient = pubClient.duplicate();
+    io.adapter(createAdapter(pubClient, subClient));
+    console.log('🚀 Redis Adapter connected');
+  }
 
   // Authentication Middleware
   io.use((socket, next) => {

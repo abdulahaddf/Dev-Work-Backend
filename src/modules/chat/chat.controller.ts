@@ -41,27 +41,27 @@ export async function getConversations(req: Request, res: Response): Promise<voi
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        _count: {
+          select: {
+            messages: {
+              where: {
+                readAt: null,
+                senderId: { not: userId },
+              },
+            },
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
 
-    const formatted = await Promise.all(conversations.map(async (conv) => {
+    const formatted = conversations.map((conv) => {
       const otherParticipant = conv.participants[0]?.user;
-      
-      const unreadCount = await prisma.message.count({
-        where: {
-          conversationId: conv.id,
-          readAt: null,
-          senderId: { not: userId },
-        },
-      });
-
-      console.log(`🔗 Formatting conversation ${conv.id}, unreadCount: ${unreadCount}`);
       
       return {
         id: conv.id,
         updatedAt: conv.updatedAt,
-        unreadCount,
+        unreadCount: conv._count.messages,
         otherParticipant: otherParticipant ? {
           id: otherParticipant.id,
           name: otherParticipant.name,
@@ -70,7 +70,7 @@ export async function getConversations(req: Request, res: Response): Promise<voi
         } : null,
         lastMessage: conv.messages[0] || null,
       };
-    }));
+    });
 
     res.json({
       success: true,
@@ -152,8 +152,8 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
   try {
     const { id } = req.params;
     const userId = req.user!.id;
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 50;
+    const cursor = req.query.cursor as string;
+    const limit = parseInt(req.query.limit as string) || 20;
 
     // Verify user is participant
     const participant = await prisma.conversationParticipant.findUnique({
@@ -170,11 +170,14 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
       return;
     }
 
+    console.log(`📦 [API] getMessages: convId=${id}, cursor=${cursor || 'none'}, skip=${cursor ? 1 : 0}`);
+
     const messages = await prisma.message.findMany({
       where: { conversationId: id },
       orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
+      take: limit + 1, // Fetch one extra to check if there's more
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0, // Skip the cursor itself
       include: {
         sender: {
           select: { id: true, name: true, avatar: true },
@@ -182,9 +185,20 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
       },
     });
 
+    console.log(`✅ [API] getMessages found ${messages.length} messages`);
+
+    let nextCursor: string | undefined = undefined;
+    if (messages.length > limit) {
+      const nextItem = messages.pop();
+      nextCursor = nextItem?.id;
+    }
+
     res.json({
       success: true,
-      data: messages.reverse(), // Return in chronological order
+      data: {
+        messages: messages.reverse(), // Chronicological order for the slice
+        nextCursor,
+      }
     });
   } catch (error) {
     console.error('Get messages error:', error);
