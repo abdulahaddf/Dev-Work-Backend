@@ -171,3 +171,32 @@ export async function getMessages(req: Request, res: Response): Promise<void> {
     res.status(500).json({ success: false, message: 'Failed to get messages' });
   }
 }
+
+/**
+ * Get a primary admin ID for "Contact Admin" feature
+ * GET /chat/admin-id
+ */
+export async function getAdminId(req: Request, res: Response): Promise<void> {
+  try {
+    // Find the first user with an ADMIN role
+    const adminRole = await prisma.userRole.findFirst({
+      where: {
+        role: { name: 'ADMIN' },
+      },
+      select: { userId: true },
+    });
+
+    if (!adminRole) {
+      res.status(404).json({ success: false, message: 'No administrators found' });
+      return;
+    }
+
+    res.json({
+      success: true,
+      data: { adminId: adminRole.userId },
+    });
+  } catch (error) {
+    console.error('Get admin ID error:', error);
+    res.status(500).json({ success: false, message: 'Failed to get admin ID' });
+  }
+}

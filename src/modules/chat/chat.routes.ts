@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getConversations, getOrCreateConversation, getMessages } from './chat.controller.js';
+import { getConversations, getOrCreateConversation, getMessages, getAdminId } from './chat.controller.js';
 import { authenticateJWT } from '../../middleware/auth.middleware.js';
 
 const router = Router();
@@ -20,6 +20,13 @@ router.get('/conversations', getConversations);
  * @access  Private
  */
 router.post('/conversations', getOrCreateConversation);
+
+/**
+ * @route   GET /api/chat/admin-id
+ * @desc    Get an admin ID to start a help chat
+ * @access  Private
+ */
+router.get('/admin-id', getAdminId);
 
 /**
  * @route   GET /api/chat/conversations/:id/messages
