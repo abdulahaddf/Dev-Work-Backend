@@ -44,6 +44,9 @@ export function setupSocket(httpServer: HttpServer) {
       io.emit('user_online', userId);
     }
     onlineUsers.get(userId)!.add(socket.id);
+    
+    // Send current online users to the newly connected user
+    socket.emit('online_users_list', Array.from(onlineUsers.keys()));
 
     console.log(`📱 User connected: ${userId} (${socket.id})`);
 
@@ -103,6 +106,34 @@ export function setupSocket(httpServer: HttpServer) {
       } catch (error) {
         console.error('Error sending message:', error);
         socket.emit('error', 'Failed to send message');
+      }
+    });
+
+    // Mark messages as read
+    socket.on('mark_as_read', async (data: { conversationId: string }) => {
+      try {
+        const { conversationId } = data;
+        const now = new Date();
+
+        await prisma.message.updateMany({
+          where: {
+            conversationId,
+            senderId: { not: userId },
+            readAt: null,
+          },
+          data: {
+            readAt: now,
+          },
+        });
+
+        // Notify other participants in the conversation
+        socket.to(`conversation:${conversationId}`).emit('messages_read', {
+          conversationId,
+          readBy: userId,
+          readAt: now,
+        });
+      } catch (error) {
+        console.error('Error marking as read:', error);
       }
     });
 

@@ -213,6 +213,7 @@ model Message {
   id        String   @id @default(uuid())
   content   String
   createdAt DateTime @default(now())
+  readAt    DateTime?
 
   conversationId String
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
