@@ -2,7 +2,7 @@
   "name": "dev-work-backend",
   "version": "1.0.0",
   "description": "DevWork - Role-Based Project Marketplace API",
-  "main": "dist/server.js",
+  "main": "./dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
