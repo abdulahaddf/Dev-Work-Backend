@@ -19,7 +19,7 @@ const app: Express = express();
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
-  'https://dev-work-frontend.vercel.app', // Vercel production
+  'https://dev-work-df.netlify.app', // Vercel production
   process.env.FRONTEND_URL, // Additional frontend URL from env
 ].filter(Boolean); // Remove undefined values
 

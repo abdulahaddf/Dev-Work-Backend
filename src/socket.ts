@@ -14,7 +14,7 @@ export function setupSocket(httpServer: HttpServer) {
       origin: [
         'http://localhost:3000',
         'http://localhost:3001',
-        'https://dev-work-frontend.vercel.app',
+        'https://dev-work-df.netlify.app',
       ],
       credentials: true,
     },
