@@ -30,27 +30,28 @@ DevWork is a SaaS platform connecting project buyers with skilled solvers throug
 - ✅ **Role-Based Access Control (RBAC)** - Admin, Buyer, Solver roles
 - ✅ **Real-Time Communication** - Socket.IO for instant chat, notifications, and presence
 - ✅ **State Machine Workflows** - Enforced project and task lifecycles
+- ✅ **N+1 Query Optimization** - Efficient `_count` aggregations in Prisma
+- ✅ **Cursor-Based Pagination** - High-performance messaging for large datasets
 - ✅ **File Upload System** - ZIP submissions stored in Supabase Storage
 - ✅ **JWT Authentication** - Secure token-based auth
 - ✅ **PostgreSQL Database** - Relational data with Prisma ORM
 
----
-
 ## 🛠 Tech Stack
 
-| **Layer**            | **Technology**   | **Purpose**                    |
-| -------------------- | ---------------- | ------------------------------ |
-| **Runtime**          | Node.js 20+      | JavaScript runtime             |
-| **Framework**        | Express.js       | REST API server                |
-| **Real-time**        | Socket.IO        | WebSockets for chat & presence |
-| **Language**         | TypeScript       | Type-safe development          |
-| **Database**         | PostgreSQL       | Relational database            |
-| **ORM**              | Prisma 5.9       | Type-safe database access      |
-| **Authentication**   | JWT              | Stateless auth tokens          |
-| **File Storage**     | Supabase Storage | Cloud file storage             |
-| **Validation**       | Zod              | Schema validation              |
-| **Password Hashing** | bcryptjs         | Secure password storage        |
-| **File Upload**      | Multer           | Multipart form handling        |
+| **Layer**            | **Technology**   | **Purpose**                      |
+| -------------------- | ---------------- | -------------------------------- |
+| **Runtime**          | Node.js 20+      | JavaScript runtime               |
+| **Framework**        | Express.js       | REST API server                  |
+| **Real-time**        | Socket.IO        | WebSockets for chat & presence   |
+| **Caching/Scaling**  | Redis            | Horizontal scaling for Socket.IO |
+| **Language**         | TypeScript       | Type-safe development            |
+| **Database**         | PostgreSQL       | Relational database              |
+| **ORM**              | Prisma 5.9       | Type-safe database access        |
+| **Authentication**   | JWT              | Stateless auth tokens            |
+| **File Storage**     | Supabase Storage | Cloud file storage               |
+| **Validation**       | Zod              | Schema validation                |
+| **Password Hashing** | bcryptjs         | Secure password storage          |
+| **File Upload**      | Multer           | Multipart form handling          |
 
 ---
 
