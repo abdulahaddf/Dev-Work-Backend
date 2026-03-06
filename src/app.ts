@@ -69,8 +69,6 @@ app.use('/uploads', express.static(uploadsPath, { dotfiles: 'deny' }));
 app.get('/health', (req: Request, res: Response) => {
   res.json({
     status: 'healthy',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
   });
 });
 
